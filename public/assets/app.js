@@ -1,12 +1,85 @@
 const people = document.querySelector('#people');
 const template = document.querySelector('#person-template');
-const childDates = ['2026-10-08','2026-10-22','2026-10-29'];
-const regularTimes = ['09:00','10:00','11:00','17:00','18:00','19:00'];
-const childTimes = ['16:30','17:00','17:30','18:00'];
-function weekdays(){const out=[];for(let d=new Date('2026-10-01T12:00:00');d<=new Date('2026-12-28T12:00:00');d.setDate(d.getDate()+1)){if(d.getDay()>0&&d.getDay()<6)out.push(d.toISOString().slice(0,10));}return out;}
-function ageOn(birth,date){let b=new Date(birth+'T12:00:00'),d=new Date(date+'T12:00:00');let age=d.getFullYear()-b.getFullYear();if(d.getMonth()<b.getMonth()||(d.getMonth()===b.getMonth()&&d.getDate()<b.getDate()))age--;return age;}
-function renumber(){[...people.children].forEach((el,i)=>{el.querySelector('.person-number').textContent=i+1;el.querySelectorAll('[data-name]').forEach(input=>input.name=`people[${i}][${input.dataset.name}]`);el.querySelector('.remove').hidden=people.children.length===1;});}
-function setSchedule(fieldset){const birth=fieldset.querySelector('.birth').value;const dateSelect=fieldset.querySelector('.appointment-date');if(!birth)return;const age=ageOn(birth,'2026-10-08');const dates=age<=15?childDates:weekdays();dateSelect.innerHTML='<option value="">選択してください</option>'+dates.map(d=>`<option value="${d}">${d.replaceAll('-','/')}</option>`).join('');const nasal=fieldset.querySelector('.nasal');nasal.classList.toggle('disabled',age<2||age>12);nasal.querySelector('input').disabled=age<2||age>12;fieldset.querySelector('.eligibility-hint').textContent=age<=15?'小児接種日（10月8日・22日・29日）が選択できます。':'平日の診療時間から選択できます。';}
-function setTimes(fieldset){const date=fieldset.querySelector('.appointment-date').value;const list=childDates.includes(date)?childTimes:regularTimes;fieldset.querySelector('.appointment-time').innerHTML='<option value="">選択してください</option>'+list.map(t=>`<option>${t}</option>`).join('');}
-function addPerson(){const el=template.content.firstElementChild.cloneNode(true);people.append(el);el.querySelector('.birth').addEventListener('change',()=>setSchedule(el));el.querySelector('.appointment-date').addEventListener('change',()=>setTimes(el));el.querySelector('.remove').addEventListener('click',()=>{el.remove();renumber();});el.querySelectorAll('[data-name="vaccine_method"]').forEach(r=>r.addEventListener('change',()=>{if(r.value==='nasal'&&r.checked)el.querySelector('[data-name="dose_no"]').value='1';}));renumber();}
-document.querySelector('#add-person')?.addEventListener('click',addPerson);if(people)addPerson();
+const form = document.querySelector('#application-form');
+const schedule = form ? JSON.parse(form.dataset.scheduleConfig) : null;
+
+function weekdays(start, end) {
+  const dates = [];
+  for (let date = new Date(`${start}T12:00:00`), last = new Date(`${end}T12:00:00`); date <= last; date.setDate(date.getDate() + 1)) {
+    if (date.getDay() > 0 && date.getDay() < 6) dates.push(date.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function ageOn(birthDate, date) {
+  const birth = new Date(`${birthDate}T12:00:00`);
+  const onDate = new Date(`${date}T12:00:00`);
+  if (birth > onDate) return -1;
+  let age = onDate.getFullYear() - birth.getFullYear();
+  if (onDate.getMonth() < birth.getMonth() || (onDate.getMonth() === birth.getMonth() && onDate.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+function afterSchoolCutoff(birthDate, years) {
+  return birthDate > `${schedule.season - years}-04-01`;
+}
+
+function isChildCohort(birthDate) {
+  return afterSchoolCutoff(birthDate, 15);
+}
+
+function renumber() {
+  [...people.children].forEach((element, index) => {
+    element.querySelector('.person-number').textContent = index + 1;
+    element.querySelectorAll('[data-name]').forEach(input => { input.name = `people[${index}][${input.dataset.name}]`; });
+    element.querySelector('.remove').hidden = people.children.length === 1;
+  });
+}
+
+function updateNasalEligibility(fieldset) {
+  const birthDate = fieldset.querySelector('.birth').value;
+  const selectedDate = fieldset.querySelector('.appointment-date').value;
+  const dates = isChildCohort(birthDate) ? schedule.childDates : weekdays(schedule.seniorStart, schedule.seniorEnd);
+  const appointmentDate = selectedDate || dates[0];
+  const eligible = Boolean(birthDate && appointmentDate && ageOn(birthDate, appointmentDate) >= 2 && afterSchoolCutoff(birthDate, 13));
+  const nasal = fieldset.querySelector('.nasal');
+  const input = nasal.querySelector('input');
+  nasal.classList.toggle('disabled', !eligible);
+  input.disabled = !eligible;
+  if (!eligible && input.checked) input.checked = false;
+}
+
+function setSchedule(fieldset) {
+  const birthDate = fieldset.querySelector('.birth').value;
+  const dateSelect = fieldset.querySelector('.appointment-date');
+  if (!birthDate) return;
+  const child = isChildCohort(birthDate);
+  const dates = child ? schedule.childDates : weekdays(schedule.seniorStart, schedule.seniorEnd);
+  dateSelect.innerHTML = '<option value="">選択してください</option>' + dates.map(date => `<option value="${date}">${date.replaceAll('-', '/')}</option>`).join('');
+  fieldset.querySelector('.appointment-time').innerHTML = '<option value="">日付を先に選択</option>';
+  fieldset.querySelector('.eligibility-hint').textContent = child ? '小児接種日から選択できます。' : '平日の診療時間から選択できます。';
+  updateNasalEligibility(fieldset);
+}
+
+function setTimes(fieldset) {
+  const date = fieldset.querySelector('.appointment-date').value;
+  const times = schedule.childDates.includes(date) ? schedule.childTimes : schedule.regularTimes;
+  fieldset.querySelector('.appointment-time').innerHTML = '<option value="">選択してください</option>' + times.map(time => `<option>${time}</option>`).join('');
+  updateNasalEligibility(fieldset);
+}
+
+function addPerson() {
+  const element = template.content.firstElementChild.cloneNode(true);
+  people.append(element);
+  element.querySelector('.birth').addEventListener('change', () => setSchedule(element));
+  element.querySelector('.appointment-date').addEventListener('change', () => setTimes(element));
+  element.querySelector('.remove').addEventListener('click', () => { element.remove(); renumber(); });
+  element.querySelectorAll('[data-name="vaccine_method"]').forEach(radio => radio.addEventListener('change', () => {
+    if (radio.value === 'nasal' && radio.checked) element.querySelector('[data-name="dose_no"]').value = '1';
+  }));
+  renumber();
+}
+
+document.querySelector('#add-person')?.addEventListener('click', addPerson);
+document.querySelector('[data-history-back]')?.addEventListener('click', () => history.back());
+if (people && schedule) addPerson();

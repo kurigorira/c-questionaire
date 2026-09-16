@@ -23,4 +23,12 @@ final class Security
     {
         return preg_match('/^[=+\-@]/u', $value) ? "'" . $value : $value;
     }
+
+    public static function adminCredentials(?string $user = null, ?string $password = null): ?array
+    {
+        $user ??= getenv('ADMIN_USER') ?: '';
+        $password ??= getenv('ADMIN_PASSWORD') ?: '';
+        if (trim($user) === '' || trim($password) === '' || in_array($password, ['change-me', 'replace-this-password'], true)) return null;
+        return [$user, $password];
+    }
 }
