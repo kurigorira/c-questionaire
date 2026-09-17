@@ -27,5 +27,10 @@ $tests['fee and subsidy note are displayed'] = str_contains($indexSource, '自�
 $databaseSource = file_get_contents(dirname(__DIR__) . '/src/Database.php');
 $tests['chart number has a unique partial index'] = str_contains($databaseSource, 'uniq_recipients_chart_no') && str_contains($databaseSource, "WHERE chart_no <> ''");
 $tests['revision contact note is displayed'] = str_contains($indexSource, '登録後に修正がある場合：総務課に連絡をお願いします。');
+$tests['postal address and phone are required for everyone'] = str_contains($indexSource, 'data-name="postal_code" inputmode="numeric" required')
+    && str_contains($indexSource, 'data-name="address" required')
+    && str_contains($indexSource, 'data-name="phone" inputmode="tel" required')
+    && str_contains($indexSource, "'postal_code','address','phone'")
+    && !str_contains($indexSource, 'カルテ番号がない方');
 foreach($tests as $name=>$ok) echo ($ok?'PASS':'FAIL')." {$name}\n";
 exit(in_array(false,$tests,true)?1:0);
