@@ -22,5 +22,7 @@ $tests['staff self is excluded from family relationship'] = !str_contains($index
 $tests['appointment dates include weekday labels'] = str_contains($scriptSource, "weekdaysJa = ['日', '月', '火', '水', '木', '金', '土']");
 $tests['appointment times are named clinic ranges'] = $config['regular_times'] === ['午前診療（9:00～12:00）', '夕診療（17:00～20:00）'] && $config['child_times'] === ['16:30～18:30'];
 $tests['vaccine method input is removed'] = !str_contains($indexSource, 'data-name="vaccine_method"');
+$tests['family-only label has no middle dot'] = str_contains($indexSource, '職員ご家族専用') && !str_contains($indexSource, '職員・ご家族専用');
+$tests['fee and subsidy note are displayed'] = str_contains($indexSource, '自己負担金{$fee}円') && str_contains($indexSource, '市町村の補助により価格が変わることがあります。');
 foreach($tests as $name=>$ok) echo ($ok?'PASS':'FAIL')." {$name}\n";
 exit(in_array(false,$tests,true)?1:0);

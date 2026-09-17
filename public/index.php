@@ -61,7 +61,7 @@ function view(string $title, string $content, bool $admin = false): never {
             $nav .= "<a class=\"subtle\" href=\"{$adminUrl}\">回答一覧</a><a class=\"subtle\" href=\"{$logoutUrl}\">ログアウト</a>";
         }
     } else {
-        $nav = "<span class=\"badge\">職員・ご家族専用</span><a class=\"subtle\" href=\"{$loginUrl}\">管理画面</a>";
+        $nav = "<span class=\"badge\">職員ご家族専用</span><a class=\"subtle\" href=\"{$loginUrl}\">管理画面</a>";
     }
     echo "<!doctype html><html lang=\"ja\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{$safeTitle}｜{$hospital}</title><link rel=\"stylesheet\" href=\"{$cssUrl}\"></head><body><header><div><span class=\"hospital\">{$hospital}</span><span class=\"service\">インフルエンザ予防接種</span></div><nav>{$nav}</nav></header><main>{$content}</main><footer>個人情報は予防接種受付業務の目的にのみ利用します。</footer><script src=\"{$jsUrl}\" defer></script></body></html>";
     exit;
@@ -94,7 +94,7 @@ if ($path === '/' && $method === 'GET') {
     ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     $content = <<<HTML
 <section class="network-banner"><strong>院内電子カルテネットワーク専用</strong><span>院内のWindows PCからご利用ください</span></section>
-<section class="hero"><div><p class="eyebrow">2026年度 職員家族向け</p><h1>インフルエンザ予防接種<br><em>事前申し込み（職員家族のみ）</em></h1><p>この申し込みは職員のご家族専用です。職員本人は対象ではありません。</p></div><div class="hero-date"><small>回答期限</small><strong>{$deadline}</strong><span>自己負担金 {$fee}円 / 回</span></div></section>
+<section class="hero"><div><p class="eyebrow">2026年度 職員ご家族専用</p><h1>インフルエンザ予防接種<br><em>事前申し込み</em></h1><p>この申し込みは職員のご家族専用です。職員本人は対象ではありません。</p></div><div class="hero-date"><small>回答期限</small><strong>{$deadline}</strong><span>自己負担金{$fee}円</span><small class="fee-note">市町村の補助により価格が変わることがあります。</small></div></section>
 <section class="notice"><strong>接種について</strong><div class="notice-grid"><p><b>高校生以上・65歳以上</b><br>10月1日〜12月28日の平日<br>午前診療 9:00〜12:00<br>夕診療 17:00〜20:00</p><p><b>小児（6ヶ月～中学生）（注射）</b><br>{$childDates}<br>16:30〜18:30</p><p><b>2歳～小学生（経鼻ワクチン）</b><br>{$childDates}<br>16:30〜18:30・1回接種</p></div></section>
 <form action="{$submitUrl}" method="post" id="application-form" data-schedule="{$clientConfig}"><input type="hidden" name="csrf" value="{$token}">
 <section class="card"><div class="step-title"><span>01</span><div><h2>職員情報</h2><p>お申し込みをする職員の情報をご入力ください。</p></div></div><div class="fields four"><label>職員番号<input name="employee_no" required autocomplete="off"></label><label>職員氏名<input name="employee_name" required autocomplete="name"></label><label>所属部署<input name="department" required></label><label>連絡先電話番号<input name="employee_phone" required inputmode="tel" autocomplete="tel"></label><label class="wide">メールアドレス <small>任意</small><input name="employee_email" type="email" autocomplete="email"></label></div></section>
