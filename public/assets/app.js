@@ -67,21 +67,6 @@
         fieldset.querySelector('.age-at-appointment').value = birth && date ? ageOn(birth, date) + '歳' : '';
     }
 
-    function updateMethod(fieldset) {
-        var target = field(fieldset, 'target_group').value;
-        var birth = field(fieldset, 'birth_date').value;
-        var nasal = fieldset.querySelector('.nasal');
-        var nasalInput = nasal.querySelector('input');
-        var eligible = target === '2歳～小学生';
-        if (birth && childDates.length) {
-            var age = ageOn(birth, childDates[0]);
-            eligible = eligible && age >= 2 && age <= 12;
-        }
-        nasal.className = eligible ? 'choice nasal' : 'choice nasal disabled';
-        nasalInput.disabled = !eligible;
-        if (!eligible && nasalInput.checked) nasalInput.checked = false;
-    }
-
     function updateSchedule(fieldset) {
         var birth = field(fieldset, 'birth_date').value;
         var target = field(fieldset, 'target_group').value;
@@ -91,7 +76,9 @@
         var html = '<option value="">選択してください</option>';
         var i;
 
-        updateMethod(fieldset);
+        if (target === '2歳～小学生（経鼻ワクチン）') {
+            field(fieldset, 'wants_second_dose').value = 'なし';
+        }
         if (!birth || !target) {
             dateSelect.innerHTML = '<option value="">対象と生年月日を先に入力</option>';
             hint.innerHTML = '対象区分と生年月日を選択してください。';
@@ -149,13 +136,6 @@
             renumber();
         });
 
-        var methods = entry.querySelectorAll('[data-name="vaccine_method"]');
-        var i;
-        for (i = 0; i < methods.length; i++) {
-            methods[i].addEventListener('change', function () {
-                if (this.value === 'nasal' && this.checked) field(entry, 'wants_second_dose').value = 'なし';
-            });
-        }
         renumber();
     }
 
