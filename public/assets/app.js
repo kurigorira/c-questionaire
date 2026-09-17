@@ -47,6 +47,12 @@
         return age;
     }
 
+    function formatDate(date) {
+        var weekdaysJa = ['日', '月', '火', '水', '木', '金', '土'];
+        var value = new Date(date + 'T12:00:00');
+        return date.replace(/-/g, '/') + '（' + weekdaysJa[value.getDay()] + '）';
+    }
+
     function field(fieldset, name) {
         return fieldset.querySelector('[data-name="' + name + '"]');
     }
@@ -91,7 +97,7 @@
 
         dates = target === '高校生以上' ? weekdays() : childDates;
         for (i = 0; i < dates.length; i++) {
-            html += '<option value="' + dates[i] + '">' + dates[i].replace(/-/g, '/') + '</option>';
+            html += '<option value="' + dates[i] + '">' + formatDate(dates[i]) + '</option>';
         }
         dateSelect.innerHTML = html;
         field(fieldset, 'appointment_time').innerHTML = '<option value="">日付を先に選択</option>';
