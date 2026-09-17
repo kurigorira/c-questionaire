@@ -27,14 +27,15 @@ final class Eligibility
         $age = self::ageOn($birth, $date);
         $target = $person['target_group'] ?? '';
         if ($target === '高校生以上' && $age < 15) $errors[] = '高校生以上の対象区分と年齢が一致しません。';
+        if ($target === '65歳以上' && $age < 65) $errors[] = '65歳以上の対象区分と年齢が一致しません。';
         if ($target === '小児（6か月～中学生）' && $age > 15) $errors[] = '小児の対象区分と年齢が一致しません。';
         if ($target === '2歳～小学生' && ($age < 2 || $age > 12)) $errors[] = '2歳～小学生の対象区分と年齢が一致しません。';
-        if ($target === '高校生以上' && ($person['vaccine_method'] ?? '') !== 'injection') $errors[] = '高校生以上の接種方法は注射です。';
+        if (in_array($target, ['高校生以上', '65歳以上'], true) && ($person['vaccine_method'] ?? '') !== 'injection') $errors[] = '高校生以上・65歳以上の接種方法は注射です。';
         if ($target === '小児（6か月～中学生）' && ($person['vaccine_method'] ?? '') !== 'injection') $errors[] = '小児（6か月～中学生）の接種方法は注射です。';
         if (($person['vaccine_method'] ?? '') === 'nasal' && ($age < 2 || $age > 12)) $errors[] = '経鼻ワクチンは2歳〜小学生が対象です。';
         if (($person['vaccine_method'] ?? '') === 'nasal' && (int)($person['dose_no'] ?? 1) !== 1) $errors[] = '経鼻ワクチンは1回接種です。';
         if (($person['vaccine_method'] ?? '') === 'nasal' && ($person['wants_second_dose'] ?? 'なし') === 'あり') $errors[] = '経鼻ワクチンは1回接種のため、2回接種は希望できません。';
-        $isAdult = $target === '高校生以上';
+        $isAdult = in_array($target, ['高校生以上', '65歳以上'], true);
         $allowedDates = $isAdult ? self::weekdays($config['senior_start'], $config['senior_end']) : $config['child_dates'];
         if (!in_array($date, $allowedDates, true)) $errors[] = '年齢区分に対応した接種日を選択してください。';
         $times = $isAdult ? $config['regular_times'] : $config['child_times'];

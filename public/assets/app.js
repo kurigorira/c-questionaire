@@ -57,6 +57,10 @@
         return fieldset.querySelector('[data-name="' + name + '"]');
     }
 
+    function isAdultTarget(target) {
+        return target === '高校生以上' || target === '65歳以上';
+    }
+
     function updateAge(fieldset) {
         var birth = field(fieldset, 'birth_date').value;
         var date = field(fieldset, 'appointment_date').value;
@@ -95,21 +99,21 @@
             return;
         }
 
-        dates = target === '高校生以上' ? weekdays() : childDates;
+        dates = isAdultTarget(target) ? weekdays() : childDates;
         for (i = 0; i < dates.length; i++) {
             html += '<option value="' + dates[i] + '">' + formatDate(dates[i]) + '</option>';
         }
         dateSelect.innerHTML = html;
         field(fieldset, 'appointment_time').innerHTML = '<option value="">日付を先に選択</option>';
-        hint.innerHTML = target === '高校生以上'
-            ? '10月1日～12月28日の平日・通常の予約時間から選択できます。'
+        hint.innerHTML = isAdultTarget(target)
+            ? '10月1日～12月28日の平日・午前診療または夕診療から選択できます。'
             : '10月8日・22日・29日の16:30～18:30から選択できます。';
         updateAge(fieldset);
     }
 
     function updateTimes(fieldset) {
         var target = field(fieldset, 'target_group').value;
-        var list = target === '高校生以上' ? regularTimes : childTimes;
+        var list = isAdultTarget(target) ? regularTimes : childTimes;
         var select = field(fieldset, 'appointment_time');
         var html = '<option value="">選択してください</option>';
         var i;
