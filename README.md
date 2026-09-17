@@ -41,6 +41,8 @@ http://10.20.103.125/c-questionaire/
 http://10.20.103.125/c-questionaire/index.php?route=%2Fadmin%2Flogin
 ```
 
+申込ページ右上の「管理画面」から管理者ログインへ移動できます。管理画面・ログイン画面右上の「申込ページ」から回答画面へ戻れます。
+
 詳しい手順と、終了後の削除方法は[Windows設定手順書](docs/WINDOWS-SETUP.md)を参照してください。
 
 ## 用紙から反映した回答項目

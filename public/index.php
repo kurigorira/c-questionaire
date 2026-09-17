@@ -47,13 +47,22 @@ function view(string $title, string $content, bool $admin = false): never {
     global $config;
     $safeTitle = Security::e($title);
     $hospital = Security::e($config['hospital']);
+    $formUrl = Security::e(appUrl('/'));
     $adminUrl = Security::e(appUrl('/admin'));
+    $loginUrl = Security::e(appUrl('/admin/login'));
     $logoutUrl = Security::e(appUrl('/admin/logout'));
     $cssVersion = (string)(filemtime(__DIR__ . '/assets/app.css') ?: 1);
     $jsVersion = (string)(filemtime(__DIR__ . '/assets/app.js') ?: 1);
     $cssUrl = Security::e(assetUrl('app.css') . '?v=' . $cssVersion);
     $jsUrl = Security::e(assetUrl('app.js') . '?v=' . $jsVersion);
-    $nav = $admin ? "<a class=\"subtle\" href=\"{$adminUrl}\">回答一覧</a><a class=\"subtle\" href=\"{$logoutUrl}\">ログアウト</a>" : '<span class="badge">職員・ご家族専用</span>';
+    if ($admin) {
+        $nav = "<a class=\"subtle\" href=\"{$formUrl}\">申込ページ</a>";
+        if (!empty($_SESSION['admin'])) {
+            $nav .= "<a class=\"subtle\" href=\"{$adminUrl}\">回答一覧</a><a class=\"subtle\" href=\"{$logoutUrl}\">ログアウト</a>";
+        }
+    } else {
+        $nav = "<span class=\"badge\">職員・ご家族専用</span><a class=\"subtle\" href=\"{$loginUrl}\">管理画面</a>";
+    }
     echo "<!doctype html><html lang=\"ja\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>{$safeTitle}｜{$hospital}</title><link rel=\"stylesheet\" href=\"{$cssUrl}\"></head><body><header><div><span class=\"hospital\">{$hospital}</span><span class=\"service\">インフルエンザ予防接種</span></div><nav>{$nav}</nav></header><main>{$content}</main><footer>個人情報は予防接種受付業務の目的にのみ利用します。</footer><script src=\"{$jsUrl}\" defer></script></body></html>";
     exit;
 }
