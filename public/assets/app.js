@@ -5,6 +5,17 @@
     var template = document.getElementById('person-template');
     var form = document.getElementById('application-form');
     var warning = document.getElementById('js-warning');
+    var historyButtons = document.querySelectorAll('[data-history-back]');
+    var historyIndex;
+
+    for (historyIndex = 0; historyIndex < historyButtons.length; historyIndex++) {
+        historyButtons[historyIndex].addEventListener('click', function (event) {
+            if (window.history.length > 1) {
+                event.preventDefault();
+                window.history.back();
+            }
+        });
+    }
 
     if (warning) warning.style.display = 'none';
     if (!people || !template || !form) return;

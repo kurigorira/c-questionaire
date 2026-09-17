@@ -12,5 +12,9 @@ $tests['adult weekday is accepted'] = Eligibility::validate(['target_group'=>'�
 $tests['adult weekend is rejected'] = count(Eligibility::validate(['target_group'=>'高校生以上','birth_date'=>'1980-01-01','appointment_date'=>'2026-10-03','appointment_time'=>'09:00','vaccine_method'=>'injection','dose_no'=>1],$config)) > 0;
 $tests['child rejects adult appointment time'] = count(Eligibility::validate(['target_group'=>'小児（6か月～中学生）','birth_date'=>'2014-01-01','appointment_date'=>'2026-10-08','appointment_time'=>'09:00','vaccine_method'=>'injection','dose_no'=>1],$config)) > 0;
 $tests['excel formula is neutralized'] = Security::excelSafe('=1+1') === "'=1+1";
+$indexSource = file_get_contents(dirname(__DIR__) . '/public/index.php');
+$scriptSource = file_get_contents(dirname(__DIR__) . '/public/assets/app.js');
+$tests['inline event handlers are not used'] = preg_match('/\son[a-z]+\s*=/i', $indexSource) === 0;
+$tests['validation back button has external handler'] = str_contains($indexSource, 'data-history-back') && str_contains($scriptSource, "window.history.back()");
 foreach($tests as $name=>$ok) echo ($ok?'PASS':'FAIL')." {$name}\n";
 exit(in_array(false,$tests,true)?1:0);

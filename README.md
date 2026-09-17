@@ -69,6 +69,8 @@ C:\Apache24\htdocs\c-questionaire\storage\questionnaire.sqlite
 
 最新版を上書きした後、`deploy\install-simple.ps1`を再実行して`public\assets\app.js`を`assets\app.js`へコピーし、ブラウザーで`Ctrl＋F5`を押してください。画面の「画面を準備しています」が消えればJavaScriptは正常に読み込まれています。
 
+入力エラー画面の「入力画面に戻る」は、ブラウザーの入力履歴へ戻って入力値を保持します。JavaScriptが無効な場合でも申込ページへ戻れるリンクとして動作します。
+
 > この簡易構成では`.env`とSQLiteもDocumentRoot内に置かれます。インターネット非接続の一時運用という前提です。院内の他システムからもファイルURLへ到達できる可能性はあるため、運用終了後はフォルダー全体を削除してください。
 
 ## テスト

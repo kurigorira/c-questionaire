@@ -120,7 +120,11 @@ if ($path === '/submit' && $method === 'POST') {
         if (validDate((string)($person['birth_date'] ?? '')) && validDate((string)($person['appointment_date'] ?? ''))) $errors = array_merge($errors, Eligibility::validate($person, $config));
         else $errors[] = ($i + 1) . '人目の日付が正しくありません。';
     }
-    if ($errors) { $items = implode('', array_map(fn($e) => '<li>' . Security::e($e) . '</li>', array_unique($errors))); view('入力エラー', "<section class=\"card error\"><h1>入力内容をご確認ください</h1><ul>{$items}</ul><button class=\"button\" onclick=\"history.back()\">入力画面に戻る</button></section>"); }
+    if ($errors) {
+        $items = implode('', array_map(fn($e) => '<li>' . Security::e($e) . '</li>', array_unique($errors)));
+        $formUrl = Security::e(appUrl('/'));
+        view('入力エラー', "<section class=\"card error\"><h1>入力内容をご確認ください</h1><ul>{$items}</ul><p>「入力画面に戻る」を押すと、入力内容を残したまま修正できます。</p><a class=\"button\" href=\"{$formUrl}\" data-history-back>入力画面に戻る</a></section>");
+    }
     $pdo->beginTransaction();
     $receipt = 'FLU-' . $config['season'] . '-' . strtoupper(substr(bin2hex(random_bytes(5)), 0, 8));
     $stmt = $pdo->prepare('INSERT INTO applications(receipt_no,employee_no,employee_name,department,employee_phone,employee_email,created_at) VALUES(?,?,?,?,?,?,?)');
@@ -144,7 +148,7 @@ if ($path === '/admin/login') {
     $error ??= '';
     $token = Security::csrf();
     $loginUrl = Security::e(appUrl('/admin/login'));
-    view('管理者ログイン', "<section class=\"login card\"><p class=\"eyebrow\">管理者専用</p><h1>回答管理</h1>{$error}<form method=\"post\" action=\"{$loginUrl}\"><input type=\"hidden\" name=\"csrf\" value=\"{$token}\"><label>ユーザー名<input name=\"username\" required autocomplete=\"username\"></label><label>パスワード<input type=\"password\" name=\"password\" required autocomplete=\"current-password\"></label><button class=\"primary\">ログイン</button></form></section>", true);
+    view('管理者ログイン', "<section class=\"login card\"><p class=\"eyebrow\">管理者専用</p><h1>回答管理</h1>{$error}<form method=\"post\" action=\"{$loginUrl}\"><input type=\"hidden\" name=\"csrf\" value=\"{$token}\"><label>ユーザー名<input name=\"username\" required autocomplete=\"username\"></label><label>パスワード<input type=\"password\" name=\"password\" required autocomplete=\"current-password\"></label><button class=\"primary\" type=\"submit\">ログイン</button></form></section>", true);
 }
 if ($path === '/admin/logout') { session_destroy(); redirect('/admin/login'); }
 
