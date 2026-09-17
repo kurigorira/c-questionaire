@@ -1,0 +1,12 @@
+{
+  "name": "northern-tokushukai/flu-questionnaire",
+  "description": "職員・職員家族向けインフルエンザ予防接種アンケート",
+  "require": {
+    "php": "^8.3",
+    "ext-pdo": "*",
+    "ext-mbstring": "*",
+    "ext-zip": "*"
+  },
+  "autoload": {"psr-4": {"App\\": "src/"}},
+  "scripts": {"test": "php tests/run.php"}
+}
