@@ -53,5 +53,13 @@ final class Database
         if (!in_array('target_group', $columns, true)) {
             $pdo->exec("ALTER TABLE recipients ADD COLUMN target_group TEXT NOT NULL DEFAULT ''");
         }
+
+        $duplicateCharts = (int)$pdo->query("SELECT COUNT(*) FROM (
+            SELECT chart_no FROM recipients WHERE chart_no <> '' GROUP BY chart_no HAVING COUNT(*) > 1
+        )")->fetchColumn();
+        if ($duplicateCharts === 0) {
+            $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS uniq_recipients_chart_no
+                ON recipients(chart_no) WHERE chart_no <> ''");
+        }
     }
 }

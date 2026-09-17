@@ -72,6 +72,8 @@ C:\Apache24\htdocs\c-questionaire\storage\questionnaire.sqlite
 
 回答送信後はSQLiteへ即時保存されます。管理画面の「Excelをダウンロード」を押すと、その時点までに保存された回答を`.xlsx`形式ですぐ確認できます。
 
+空欄以外のカルテ番号は1回だけ登録できます。同じカルテ番号を再度送信した場合は登録せず、入力エラーを表示します。登録後に修正がある場合は総務課へ連絡してください。
+
 ## ボタンが動かない場合
 
 最新版を上書きした後、`deploy\install-simple.ps1`を再実行して`public\assets\app.js`を`assets\app.js`へコピーし、ブラウザーで`Ctrl＋F5`を押してください。画面の「画面を準備しています」が消えればJavaScriptは正常に読み込まれています。

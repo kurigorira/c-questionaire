@@ -94,7 +94,7 @@ if ($path === '/' && $method === 'GET') {
     ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
     $content = <<<HTML
 <section class="network-banner"><strong>院内電子カルテネットワーク専用</strong><span>院内のWindows PCからご利用ください</span></section>
-<section class="hero"><div><p class="eyebrow">2026年度 職員ご家族専用</p><h1>インフルエンザ予防接種<br><em>事前申し込み</em></h1><p>この申し込みは職員のご家族専用です。職員本人は対象ではありません。</p></div><div class="hero-date"><small>回答期限</small><strong>{$deadline}</strong><span>自己負担金{$fee}円</span><small class="fee-note">市町村の補助により価格が変わることがあります。</small></div></section>
+<section class="hero"><div><p class="eyebrow">2026年度 職員ご家族専用</p><h1>インフルエンザ予防接種<br><em>事前申し込み</em></h1><p>この申し込みは職員のご家族専用です。職員本人は対象ではありません。</p><p class="revision-contact">登録後に修正がある場合：総務課に連絡をお願いします。</p></div><div class="hero-date"><small>回答期限</small><strong>{$deadline}</strong><span>自己負担金{$fee}円</span><small class="fee-note">市町村の補助により価格が変わることがあります。</small></div></section>
 <section class="notice"><strong>接種について</strong><div class="notice-grid"><p><b>高校生以上・65歳以上</b><br>10月1日〜12月28日の平日<br>午前診療 9:00〜12:00<br>夕診療 17:00〜20:00</p><p><b>小児（6ヶ月～中学生）（注射）</b><br>{$childDates}<br>16:30〜18:30</p><p><b>2歳～小学生（経鼻ワクチン）</b><br>{$childDates}<br>16:30〜18:30・1回接種</p></div></section>
 <form action="{$submitUrl}" method="post" id="application-form" data-schedule="{$clientConfig}"><input type="hidden" name="csrf" value="{$token}">
 <section class="card"><div class="step-title"><span>01</span><div><h2>職員情報</h2><p>お申し込みをする職員の情報をご入力ください。</p></div></div><div class="fields four"><label>職員番号<input name="employee_no" required autocomplete="off"></label><label>職員氏名<input name="employee_name" required autocomplete="name"></label><label>所属部署<input name="department" required></label><label>連絡先電話番号<input name="employee_phone" required inputmode="tel" autocomplete="tel"></label><label class="wide">メールアドレス <small>任意</small><input name="employee_email" type="email" autocomplete="email"></label></div></section>
@@ -113,11 +113,25 @@ if ($path === '/submit' && $method === 'POST') {
     $people = $_POST['people'] ?? [];
     if (!is_array($people) || count($people) < 1 || count($people) > 10) $errors[] = '接種する方を1〜10名登録してください。';
     $allowed = ['target_group'=>['高校生以上','65歳以上','小児（6ヶ月～中学生）（注射）','2歳～小学生（経鼻ワクチン）'],'relationship'=>['配偶者','子','その他家族'],'gender'=>['男性','女性','回答しない'],'patient_history'=>['あり','なし','不明'],'wants_second_dose'=>['あり','なし'],'dose_no'=>['1']];
+    $seenChartNumbers = [];
+    $chartLookup = $pdo->prepare("SELECT 1 FROM recipients WHERE chart_no = ? AND chart_no <> '' LIMIT 1");
     foreach ($people as $i => $person) {
         $person['vaccine_method'] = ($person['target_group'] ?? '') === '2歳～小学生（経鼻ワクチン）' ? 'nasal' : 'injection';
+        $chartNo = trim((string)($person['chart_no'] ?? ''));
+        $people[$i]['chart_no'] = $chartNo;
         foreach (['target_group','relationship','name','kana','birth_date','gender','patient_history','wants_second_dose','dose_no','appointment_date','appointment_time'] as $field) if (trim((string)($person[$field] ?? '')) === '') $errors[] = ($i + 1) . '人目の必須項目を入力してください。';
         foreach ($allowed as $field => $values) if (!in_array((string)($person[$field] ?? ''), $values, true)) $errors[] = ($i + 1) . '人目の選択項目が正しくありません。';
         if (trim((string)($person['chart_no'] ?? '')) === '' && (trim((string)($person['postal_code'] ?? '')) === '' || trim((string)($person['address'] ?? '')) === '' || trim((string)($person['phone'] ?? '')) === '')) $errors[] = ($i + 1) . '人目はカルテ番号、または郵便番号・住所・電話番号を入力してください。';
+        if ($chartNo !== '') {
+            if (isset($seenChartNumbers[$chartNo])) {
+                $errors[] = 'カルテ番号「' . $chartNo . '」が同じ申し込み内で重複しています。';
+            }
+            $seenChartNumbers[$chartNo] = true;
+            $chartLookup->execute([$chartNo]);
+            if ($chartLookup->fetchColumn()) {
+                $errors[] = 'カルテ番号「' . $chartNo . '」はすでに登録されています。登録後の修正は総務課へご連絡ください。';
+            }
+        }
         if (validDate((string)($person['birth_date'] ?? '')) && validDate((string)($person['appointment_date'] ?? ''))) $errors = array_merge($errors, Eligibility::validate($person, $config));
         else $errors[] = ($i + 1) . '人目の日付が正しくありません。';
     }
@@ -126,17 +140,26 @@ if ($path === '/submit' && $method === 'POST') {
         $formUrl = Security::e(appUrl('/'));
         view('入力エラー', "<section class=\"card error\"><h1>入力内容をご確認ください</h1><ul>{$items}</ul><p>「入力画面に戻る」を押すと、入力内容を残したまま修正できます。</p><a class=\"button\" href=\"{$formUrl}\" data-history-back>入力画面に戻る</a></section>");
     }
-    $pdo->beginTransaction();
-    $receipt = 'FLU-' . $config['season'] . '-' . strtoupper(substr(bin2hex(random_bytes(5)), 0, 8));
-    $stmt = $pdo->prepare('INSERT INTO applications(receipt_no,employee_no,employee_name,department,employee_phone,employee_email,created_at) VALUES(?,?,?,?,?,?,?)');
-    $stmt->execute([$receipt, trim($_POST['employee_no']), trim($_POST['employee_name']), trim($_POST['department']), trim($_POST['employee_phone']), trim($_POST['employee_email'] ?? ''), date('c')]);
-    $applicationId = (int)$pdo->lastInsertId();
-    $stmt = $pdo->prepare('INSERT INTO recipients(application_id,relationship,target_group,name,kana,birth_date,gender,patient_history,chart_no,postal_code,address,phone,vaccine_method,dose_no,wants_second_dose,appointment_date,appointment_time,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    foreach ($people as $p) {
-        $method = $p['target_group'] === '2歳～小学生（経鼻ワクチン）' ? 'nasal' : 'injection';
-        $stmt->execute([$applicationId,$p['relationship'],$p['target_group'],$p['name'],$p['kana'],$p['birth_date'],$p['gender'],$p['patient_history'],$p['chart_no'] ?? '',$p['postal_code'] ?? '',$p['address'] ?? '',$p['phone'] ?? '',$method,1,$p['wants_second_dose'],$p['appointment_date'],$p['appointment_time'],$p['notes'] ?? '']);
+    try {
+        $pdo->beginTransaction();
+        $receipt = 'FLU-' . $config['season'] . '-' . strtoupper(substr(bin2hex(random_bytes(5)), 0, 8));
+        $stmt = $pdo->prepare('INSERT INTO applications(receipt_no,employee_no,employee_name,department,employee_phone,employee_email,created_at) VALUES(?,?,?,?,?,?,?)');
+        $stmt->execute([$receipt, trim($_POST['employee_no']), trim($_POST['employee_name']), trim($_POST['department']), trim($_POST['employee_phone']), trim($_POST['employee_email'] ?? ''), date('c')]);
+        $applicationId = (int)$pdo->lastInsertId();
+        $stmt = $pdo->prepare('INSERT INTO recipients(application_id,relationship,target_group,name,kana,birth_date,gender,patient_history,chart_no,postal_code,address,phone,vaccine_method,dose_no,wants_second_dose,appointment_date,appointment_time,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+        foreach ($people as $p) {
+            $method = $p['target_group'] === '2歳～小学生（経鼻ワクチン）' ? 'nasal' : 'injection';
+            $stmt->execute([$applicationId,$p['relationship'],$p['target_group'],$p['name'],$p['kana'],$p['birth_date'],$p['gender'],$p['patient_history'],$p['chart_no'] ?? '',$p['postal_code'] ?? '',$p['address'] ?? '',$p['phone'] ?? '',$method,1,$p['wants_second_dose'],$p['appointment_date'],$p['appointment_time'],$p['notes'] ?? '']);
+        }
+        $pdo->commit();
+    } catch (PDOException $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        if (str_contains($error->getMessage(), 'UNIQUE constraint failed: recipients.chart_no')) {
+            $formUrl = Security::e(appUrl('/'));
+            view('重複エラー', "<section class=\"card error\"><h1>カルテ番号が重複しています</h1><p>同じカルテ番号の申し込みは既に登録されています。登録後の修正は総務課へご連絡ください。</p><a class=\"button\" href=\"{$formUrl}\" data-history-back>入力画面に戻る</a></section>");
+        }
+        throw $error;
     }
-    $pdo->commit();
     unset($_SESSION['csrf']);
     $safe = Security::e($receipt);
     $homeUrl = Security::e(appUrl('/'));

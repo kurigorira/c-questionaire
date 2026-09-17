@@ -24,5 +24,8 @@ $tests['appointment times are named clinic ranges'] = $config['regular_times'] =
 $tests['vaccine method input is removed'] = !str_contains($indexSource, 'data-name="vaccine_method"');
 $tests['family-only label has no middle dot'] = str_contains($indexSource, '職員ご家族専用') && !str_contains($indexSource, '職員・ご家族専用');
 $tests['fee and subsidy note are displayed'] = str_contains($indexSource, '自己負担金{$fee}円') && str_contains($indexSource, '市町村の補助により価格が変わることがあります。');
+$databaseSource = file_get_contents(dirname(__DIR__) . '/src/Database.php');
+$tests['chart number has a unique partial index'] = str_contains($databaseSource, 'uniq_recipients_chart_no') && str_contains($databaseSource, "WHERE chart_no <> ''");
+$tests['revision contact note is displayed'] = str_contains($indexSource, '登録後に修正がある場合：総務課に連絡をお願いします。');
 foreach($tests as $name=>$ok) echo ($ok?'PASS':'FAIL')." {$name}\n";
 exit(in_array(false,$tests,true)?1:0);
