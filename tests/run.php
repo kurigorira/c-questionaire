@@ -1,0 +1,36 @@
+<?php
+require dirname(__DIR__) . '/bootstrap.php';
+use App\Eligibility;
+use App\Security;
+$config = require dirname(__DIR__) . '/config/app.php';
+$tests = [];
+$tests['age calculation before birthday'] = Eligibility::ageOn('2014-10-09','2026-10-08') === 11;
+$tests['nasal eligible elementary child'] = Eligibility::validate(['target_group'=>'2歳～小学生（経鼻ワクチン）','birth_date'=>'2018-04-01','appointment_date'=>'2026-10-08','appointment_time'=>'16:30～18:30','vaccine_method'=>'nasal','dose_no'=>1],$config) === [];
+$tests['nasal rejects under two'] = count(Eligibility::validate(['target_group'=>'2歳～小学生（経鼻ワクチン）','birth_date'=>'2025-01-01','appointment_date'=>'2026-10-08','appointment_time'=>'16:30～18:30','vaccine_method'=>'nasal','dose_no'=>1],$config)) > 0;
+$tests['nasal rejects second dose request'] = count(Eligibility::validate(['target_group'=>'2歳～小学生（経鼻ワクチン）','birth_date'=>'2018-04-01','appointment_date'=>'2026-10-08','appointment_time'=>'16:30～18:30','vaccine_method'=>'nasal','dose_no'=>1,'wants_second_dose'=>'あり'],$config)) > 0;
+$tests['adult weekday is accepted'] = Eligibility::validate(['target_group'=>'高校生以上','birth_date'=>'1980-01-01','appointment_date'=>'2026-10-01','appointment_time'=>'午前診療（9:00～12:00）','vaccine_method'=>'injection','dose_no'=>1],$config) === [];
+$tests['adult weekend is rejected'] = count(Eligibility::validate(['target_group'=>'高校生以上','birth_date'=>'1980-01-01','appointment_date'=>'2026-10-03','appointment_time'=>'午前診療（9:00～12:00）','vaccine_method'=>'injection','dose_no'=>1],$config)) > 0;
+$tests['senior 65 target is accepted'] = Eligibility::validate(['target_group'=>'65歳以上','birth_date'=>'1950-01-01','appointment_date'=>'2026-10-01','appointment_time'=>'夕診療（17:00～20:00）','vaccine_method'=>'injection','dose_no'=>1],$config) === [];
+$tests['senior 65 target rejects underage'] = count(Eligibility::validate(['target_group'=>'65歳以上','birth_date'=>'1980-01-01','appointment_date'=>'2026-10-01','appointment_time'=>'夕診療（17:00～20:00）','vaccine_method'=>'injection','dose_no'=>1],$config)) > 0;
+$tests['child rejects adult appointment time'] = count(Eligibility::validate(['target_group'=>'小児（6ヶ月～中学生）（注射）','birth_date'=>'2014-01-01','appointment_date'=>'2026-10-08','appointment_time'=>'午前診療（9:00～12:00）','vaccine_method'=>'injection','dose_no'=>1],$config)) > 0;
+$tests['excel formula is neutralized'] = Security::excelSafe('=1+1') === "'=1+1";
+$indexSource = file_get_contents(dirname(__DIR__) . '/public/index.php');
+$scriptSource = file_get_contents(dirname(__DIR__) . '/public/assets/app.js');
+$tests['inline event handlers are not used'] = preg_match('/\son[a-z]+\s*=/i', $indexSource) === 0;
+$tests['validation back button has external handler'] = str_contains($indexSource, 'data-history-back') && str_contains($scriptSource, "window.history.back()");
+$tests['staff self is excluded from family relationship'] = !str_contains($indexSource, '<option value="本人">') && str_contains($indexSource, "'relationship'=>['配偶者','子','その他家族']");
+$tests['appointment dates include weekday labels'] = str_contains($scriptSource, "weekdaysJa = ['日', '月', '火', '水', '木', '金', '土']");
+$tests['appointment times are named clinic ranges'] = $config['regular_times'] === ['午前診療（9:00～12:00）', '夕診療（17:00～20:00）'] && $config['child_times'] === ['16:30～18:30'];
+$tests['vaccine method input is removed'] = !str_contains($indexSource, 'data-name="vaccine_method"');
+$tests['family-only label has no middle dot'] = str_contains($indexSource, '職員ご家族専用') && !str_contains($indexSource, '職員・ご家族専用');
+$tests['fee and subsidy note are displayed'] = str_contains($indexSource, '自己負担金{$fee}円') && str_contains($indexSource, '市町村の補助により価格が変わることがあります。');
+$databaseSource = file_get_contents(dirname(__DIR__) . '/src/Database.php');
+$tests['chart number has a unique partial index'] = str_contains($databaseSource, 'uniq_recipients_chart_no') && str_contains($databaseSource, "WHERE chart_no <> ''");
+$tests['revision contact note is displayed'] = str_contains($indexSource, '登録後に修正がある場合：総務課に連絡をお願いします。');
+$tests['postal address and phone are required for everyone'] = str_contains($indexSource, 'data-name="postal_code" inputmode="numeric" required')
+    && str_contains($indexSource, 'data-name="address" required')
+    && str_contains($indexSource, 'data-name="phone" inputmode="tel" required')
+    && str_contains($indexSource, "'postal_code','address','phone'")
+    && !str_contains($indexSource, 'カルテ番号がない方');
+foreach($tests as $name=>$ok) echo ($ok?'PASS':'FAIL')." {$name}\n";
+exit(in_array(false,$tests,true)?1:0);
