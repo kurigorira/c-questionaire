@@ -1,0 +1,14 @@
+const people = document.querySelector('#people');
+const template = document.querySelector('#person-template');
+const form = document.querySelector('#application-form');
+const schedule = form ? JSON.parse(form.dataset.schedule) : {};
+const childDates = schedule.childDates || [];
+const regularTimes = schedule.regularTimes || [];
+const childTimes = schedule.childTimes || [];
+function weekdays(){const out=[];for(let d=new Date(schedule.seniorStart+'T12:00:00');d<=new Date(schedule.seniorEnd+'T12:00:00');d.setDate(d.getDate()+1)){if(d.getDay()>0&&d.getDay()<6)out.push(d.toISOString().slice(0,10));}return out;}
+function ageOn(birth,date){let b=new Date(birth+'T12:00:00'),d=new Date(date+'T12:00:00');let age=d.getFullYear()-b.getFullYear();if(d.getMonth()<b.getMonth()||(d.getMonth()===b.getMonth()&&d.getDate()<b.getDate()))age--;return age;}
+function renumber(){[...people.children].forEach((el,i)=>{el.querySelector('.person-number').textContent=i+1;el.querySelectorAll('[data-name]').forEach(input=>input.name=`people[${i}][${input.dataset.name}]`);el.querySelector('.remove').hidden=people.children.length===1;});}
+function setSchedule(fieldset){const birth=fieldset.querySelector('.birth').value;const dateSelect=fieldset.querySelector('.appointment-date');if(!birth)return;const age=ageOn(birth,childDates[0]||schedule.seniorStart);const dates=age<=15?childDates:weekdays();dateSelect.innerHTML='<option value="">選択してください</option>'+dates.map(d=>`<option value="${d}">${d.replaceAll('-','/')}</option>`).join('');const nasal=fieldset.querySelector('.nasal');nasal.classList.toggle('disabled',age<2||age>12);nasal.querySelector('input').disabled=age<2||age>12;fieldset.querySelector('.eligibility-hint').textContent=age<=15?'設定された小児接種日から選択できます。':'平日の診療時間から選択できます。';}
+function setTimes(fieldset){const date=fieldset.querySelector('.appointment-date').value;const list=childDates.includes(date)?childTimes:regularTimes;fieldset.querySelector('.appointment-time').innerHTML='<option value="">選択してください</option>'+list.map(t=>`<option>${t}</option>`).join('');}
+function addPerson(){const el=template.content.firstElementChild.cloneNode(true);people.append(el);el.querySelector('.birth').addEventListener('change',()=>setSchedule(el));el.querySelector('.appointment-date').addEventListener('change',()=>setTimes(el));el.querySelector('.remove').addEventListener('click',()=>{el.remove();renumber();});el.querySelectorAll('[data-name="vaccine_method"]').forEach(r=>r.addEventListener('change',()=>{if(r.value==='nasal'&&r.checked)el.querySelector('[data-name="dose_no"]').value='1';}));renumber();}
+document.querySelector('#add-person')?.addEventListener('click',addPerson);if(people)addPerson();
